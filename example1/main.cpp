@@ -1,6 +1,7 @@
 #include "Triangle.hpp"
 #include "rasterizer.hpp"
 #include <eigen3/Eigen/Eigen>
+#include <cmath>
 #include <iostream>
 #include <opencv2/opencv.hpp>
 
@@ -26,6 +27,11 @@ Eigen::Matrix4f get_model_matrix(float rotation_angle)
     // TODO: Implement this function
     // Create the model matrix for rotating the triangle around the Z axis.
     // Then return it.
+    float rad = rotation_angle / 180.0 * MY_PI;
+    model << 1, 0, 0, 0,
+             0, cos(rad), -sin(rad), 0,
+             0, sin(rad), cos(rad), 0,
+             0, 0, 0, 1; 
 
     return model;
 }
@@ -64,11 +70,11 @@ int main(int argc, const char** argv)
 
     Eigen::Vector3f eye_pos = {0, 0, 5};
 
-    std::vector<Eigen::Vector3f> pos{{2, 0, -2}, {0, 2, -2}, {-2, 0, -2}};
+    std::vector<Eigen::Vector3f> pos{{0.1, 0, -0.1}, {0, 0.1, -0.1}, {-0.1, 0, -0.1}};
 
     std::vector<Eigen::Vector3i> ind{{0, 1, 2}};
 
-    auto pos_id = r.load_positions(pos);
+    auto pos_id = r.load_positions(pos);//加载三角形三个点。
     auto ind_id = r.load_indices(ind);
 
     int key = 0;

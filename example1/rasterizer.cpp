@@ -154,7 +154,11 @@ void rst::rasterizer::draw(rst::pos_buf_id pos_buffer, rst::ind_buf_id ind_buffe
                 mvp * to_vec4(buf[i[1]], 1.0f),
                 mvp * to_vec4(buf[i[2]], 1.0f)
         };
-
+        std::cout<< "----------"<< std::endl;
+        for (auto& vert: v) {
+            std::cout << vert.transpose() << std::endl;
+        }
+            std::cout<< "----------"<< std::endl;
         for (auto& vec : v) {
             vec /= vec.w();
         }
@@ -183,6 +187,7 @@ void rst::rasterizer::draw(rst::pos_buf_id pos_buffer, rst::ind_buf_id ind_buffe
 
 void rst::rasterizer::rasterize_wireframe(const Triangle& t)
 {
+    std::cout<< t.a() << "," << t.b() << "," << t.c() << std::endl;
     draw_line(t.c(), t.a());
     draw_line(t.c(), t.b());
     draw_line(t.b(), t.a());
