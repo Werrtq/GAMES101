@@ -63,6 +63,29 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
     return M1 * projection;
 }
 
+Eigen::Matrix4f get_rotation(Vector3f axis, float angle)
+{
+    float rad = angle / 180.0 * MY_PI;
+
+    Eigen::Matrix4f rotation = Eigen::Matrix4f::Identity();
+
+    Eigen::Matrix3f one, two, three;
+    one << cos(rad), 0, 0,
+           0, cos(rad), 0,
+           0, 0, cos(rad),
+
+    two << (1 - cos(rad)) * axis * axis.transpose();
+
+    three << 0, -axis.z(), axis.y(),
+             axis.z(), 0, -axis.x(),
+            -axis.y(), axis.x(), 0;
+    three *= sin(rad);
+
+    rotation.block<3, 3>(0, 0) = one + two + three;
+
+    return rotation;
+}
+
 int main(int argc, const char** argv)
 {
     float angle = 0;
@@ -83,7 +106,7 @@ int main(int argc, const char** argv)
 
     Eigen::Vector3f eye_pos = {0, 0, 5};
 
-    std::vector<Eigen::Vector3f> pos{{2, 0, -2}, {0, 2, -2}, {-2, 0, -2}};
+    std::vector<Eigen::Vector3f> pos{{1, 0, -1}, {0, 1, -1}, {-1, 0, -1}};
 
     std::vector<Eigen::Vector3i> ind{{0, 1, 2}};
 
@@ -112,7 +135,8 @@ int main(int argc, const char** argv)
     while (key != 27) {
         r.clear(rst::Buffers::Color | rst::Buffers::Depth);
 
-        r.set_model(get_model_matrix(angle));
+        // r.set_model(get_model_matrix(angle));
+        r.set_model(get_rotation(Eigen::Vector3f(1, 1, 1), angle));
         r.set_view(get_view_matrix(eye_pos));
         r.set_projection(get_projection_matrix(45, 1, 0.1, 50));
 
