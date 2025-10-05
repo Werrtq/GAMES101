@@ -40,7 +40,7 @@ auto to_vec4(const Eigen::Vector3f& v3, float w = 1.0f)
 }
 
 
-static bool insideTriangle(int x, int y, const Vector3f* _v)
+static bool insideTriangle(float x, float y, const Vector3f* _v)
 {   
     // TODO : Implement this function to check if the point (x, y) is inside the triangle represented by _v[0], _v[1], _v[2]
     Vector3f ab = _v[1] - _v[0];
@@ -79,6 +79,7 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
     float f2 = (50 + 0.1) / 2.0;
 
     Eigen::Matrix4f mvp = projection * view * model;
+    // std::cout << "mvp: \n" << mvp << std::endl;
     for (auto& i : ind)
     {
         Triangle t;
@@ -91,6 +92,8 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
         for (auto& vec : v) {
             vec /= vec.w();
         }
+
+        // std::cout<< "after mvp\n" << v[0] << "\n" << v[1] << "\n" << v[2] << std::endl;
         //Viewport transformation
         for (auto & vert : v)
         {
@@ -114,6 +117,7 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
         t.setColor(1, col_y[0], col_y[1], col_y[2]);
         t.setColor(2, col_z[0], col_z[1], col_z[2]);
 
+        std::cout << " `````````````` " << i << std::endl;
         rasterize_triangle(t);
     }
 }
@@ -124,15 +128,59 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     
     // TODO : Find out the bounding box of current triangle.
     // iterate through the pixel and find if the current pixel is inside the triangle
-    auto x_min = std::min({v[0].x(), v[1].x(), v[2].x()});
-    auto x_max = std::max({v[0].x(), v[1].x(), v[2].x()});
-    auto y_min = std::min({v[0].y(), v[1].y(), v[2].y()});
-    auto y_max = std::max({v[0].y(), v[1].y(), v[2].y()});
+    int x_min = std::min({v[0].x(), v[1].x(), v[2].x()});
+    int x_max = std::max({v[0].x(), v[1].x(), v[2].x()});
+    int y_min = std::min({v[0].y(), v[1].y(), v[2].y()});
+    int y_max = std::max({v[0].y(), v[1].y(), v[2].y()});
+    if (x_min < 0) x_min =0;
+    if (x_max > width) x_max = width - 1;
+    if (y_min < 0) y_min =0;
+    if (y_max > height) y_max = height - 1;
+
+    std::cout << "x_min: " << x_min << ", x_max: " << x_max << ", y_min: " << y_min << ", y_max: " << y_max << std::endl;
+
+    std::vector<Eigen::Vector3f> colList;
+
+    // for (int i = x_min; i <= x_max; i++) {
+    //     for (int j = y_min; j <= y_max; j++) {
+
+    //         // std::cout << i << ", " <<j << std::endl;
+
+    //         if (insideTriangle(i + 0.5, j + 0.5, t.v)) {
+    //             // If so, use the following code to get the interpolated z value.
+    //             auto[alpha, beta, gamma] = computeBarycentric2D(i, j, t.v);
+    //             float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+    //             float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+    //             z_interpolated *= w_reciprocal;
+
+    //             // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
+
+    //             bool a = false;
+    //             for (auto col: colList) {
+    //                 if (t.getColor() == col) a= true;
+    //             }
+    //             if (!a) colList.push_back(t.getColor());
+    //             if (z_interpolated < depth_buf[get_index(i, j)]) {
+    //                 depth_buf[get_index(i, j)] = z_interpolated;
+    //                 set_pixel(Eigen::Vector3f(i, j, 1), t.getColor());
+    //             }
+    //         }
+    //     }
+    // }
+
+
 
     for (int i = x_min; i <= x_max; i++) {
         for (int j = y_min; j <= y_max; j++) {
-            if (insideTriangle(i + 0.5, j + 0.5, t.v)) {
-
+            int count = 0;
+            // std::cout << i << ", " <<j << std::endl;
+            if (insideTriangle(i + 0.25, j + 0.25, t.v)) count++;
+            if (insideTriangle(i + 0.75, j + 0.25, t.v)) count++;
+            if (insideTriangle(i + 0.25, j + 0.75, t.v)) count++;
+            if (insideTriangle(i + 0.75, j + 0.75, t.v)) count++;
+            // if (insideTriangle(i + 0.5, j + 0.5, t.v)) {
+            if (count < 1) continue;
+            // if (count != 0 && count != 4) std::cout<< "count: " << count <<std::endl;
                 // If so, use the following code to get the interpolated z value.
                 auto[alpha, beta, gamma] = computeBarycentric2D(i, j, t.v);
                 float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
@@ -142,11 +190,22 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
                 // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
                 if (z_interpolated < depth_buf[get_index(i, j)]) {
                     depth_buf[get_index(i, j)] = z_interpolated;
-                    set_pixel(Eigen::Vector3f(i, j, 1), t.getColor());
+                    set_pixel(Eigen::Vector3f(i, j, 1), t.getColor() * count / 4);
                 }
-            }
+
+                bool a = false;
+                for (auto col: colList) {
+                    if (t.getColor() * count / 4 == col) a= true;
+                }
+                if (!a) colList.push_back((t.getColor() * count) / 4);
+                
+            // }
         }
     }
+
+    // for (auto col: colList) {
+    //     std::cout << "collList" << std::endl << col << std::endl;
+    // }
 
 }
 
@@ -190,10 +249,9 @@ int rst::rasterizer::get_index(int x, int y)
 
 void rst::rasterizer::set_pixel(const Eigen::Vector3f& point, const Eigen::Vector3f& color)
 {
-    //old index: auto ind = point.y() + point.x() * width;
-    auto ind = (height-1-point.y())*width + point.x();
+    //old index: auto ind = point.y() + point.x() * width; //如果左下角是坐标原点，这种方式是从下往上，从右往左扫描。
+    auto ind = (height-1-point.y())*width + point.x();  //这样方式是从上往下，从右往左扫描。符合视觉上的情况？如果把图片输入内存。
     frame_buf[ind] = color;
-
 }
 
 // clang-format on

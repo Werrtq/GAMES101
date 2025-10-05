@@ -24,7 +24,12 @@ Eigen::Matrix4f get_view_matrix(Eigen::Vector3f eye_pos)
 
 Eigen::Matrix4f get_model_matrix(float rotation_angle)
 {
+    float ang = rotation_angle * MY_PI / 180.0;
     Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
+    model << cos(ang), 0, sin(ang), 0,
+             0, 1, 0, 0,
+             -sin(ang), 0, cos(ang), 0,
+             0, 0, 0, 1;
     return model;
 }
 
@@ -91,7 +96,7 @@ int main(int argc, const char** argv)
                     {3, 4, 5}
             };
 
-    std::vector<Eigen::Vector3f> cols
+    std::vector<Eigen::Vector3f> cols //2.580776 12.62246
             {
                     {217.0, 238.0, 185.0},
                     {217.0, 238.0, 185.0},
@@ -141,9 +146,15 @@ int main(int argc, const char** argv)
         image.convertTo(image, CV_8UC3, 1.0f);
         cv::cvtColor(image, image, cv::COLOR_RGB2BGR);
         cv::imshow("image", image);
-        key = cv::waitKey(10);
+        key = cv::waitKey(2000);
 
-        std::cout << "frame count: " << frame_count++ << '\n';
+        if (key == 'a') {
+            angle += 10;
+        } else if (key == 'd') {
+            angle -= 10;
+        }
+
+        std::cout << "frame count: " << frame_count++ << " | " << angle<< '\n';
     }
 
     return 0;
