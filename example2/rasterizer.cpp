@@ -120,6 +120,22 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
         std::cout << " `````````````` " << i << std::endl;
         rasterize_triangle(t);
     }
+
+    for(int i = 0; i < width; i++){
+        for(int j = 0; j < height; j++){
+            // int list[][] = {[0, 0], [1, 0], [0, 1], [1, 1]};
+
+            // float zValue = 0;
+            Eigen::Vector3f color = {0, 0, 0};
+
+            for (int li = 0; li < 4; li++){
+                // zValue += depth_buf[get_index(i, j)];
+                color += frame_ssaa_buf[get_index_ssaa(i, j) + li];
+            }
+
+            frame_buf[get_index(i, j)] = color / 4;
+        }
+    }
 }
 
 //Screen space rasterization
@@ -138,9 +154,6 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     if (y_max > height) y_max = height - 1;
 
     std::cout << "x_min: " << x_min << ", x_max: " << x_max << ", y_min: " << y_min << ", y_max: " << y_max << std::endl;
-
-    std::vector<Eigen::Vector3f> colList;
-
     // for (int i = x_min; i <= x_max; i++) {
     //     for (int j = y_min; j <= y_max; j++) {
 
@@ -155,11 +168,6 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
 
     //             // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
 
-    //             bool a = false;
-    //             for (auto col: colList) {
-    //                 if (t.getColor() == col) a= true;
-    //             }
-    //             if (!a) colList.push_back(t.getColor());
     //             if (z_interpolated < depth_buf[get_index(i, j)]) {
     //                 depth_buf[get_index(i, j)] = z_interpolated;
     //                 set_pixel(Eigen::Vector3f(i, j, 1), t.getColor());
@@ -172,41 +180,26 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
 
     for (int i = x_min; i <= x_max; i++) {
         for (int j = y_min; j <= y_max; j++) {
-            int count = 0;
-            // std::cout << i << ", " <<j << std::endl;
-            if (insideTriangle(i + 0.25, j + 0.25, t.v)) count++;
-            if (insideTriangle(i + 0.75, j + 0.25, t.v)) count++;
-            if (insideTriangle(i + 0.25, j + 0.75, t.v)) count++;
-            if (insideTriangle(i + 0.75, j + 0.75, t.v)) count++;
-            // if (insideTriangle(i + 0.5, j + 0.5, t.v)) {
-            if (count < 1) continue;
-            // if (count != 0 && count != 4) std::cout<< "count: " << count <<std::endl;
-                // If so, use the following code to get the interpolated z value.
-                auto[alpha, beta, gamma] = computeBarycentric2D(i, j, t.v);
-                float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
-                float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
-                z_interpolated *= w_reciprocal;
+            float list[4][2] = {{0.25, 0.25}, {0.75, 0.25}, {0.25, 0.75},{ 0.75, 0.75}};
 
-                // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
-                if (z_interpolated < depth_buf[get_index(i, j)]) {
-                    depth_buf[get_index(i, j)] = z_interpolated;
-                    set_pixel(Eigen::Vector3f(i, j, 1), t.getColor() * count / 4);
-                }
+            for (int li = 0; li < 4; li++){
+                if (insideTriangle(i + list[li][0], j + list[li][1], t.v)) {
+                    // If so, use the following code to get the interpolated z value.
+                    auto[alpha, beta, gamma] = computeBarycentric2D(i + list[li][0], j + list[li][1], t.v);
+                    float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+                    float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+                    z_interpolated *= w_reciprocal;
 
-                bool a = false;
-                for (auto col: colList) {
-                    if (t.getColor() * count / 4 == col) a= true;
+                    // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
+                    if (z_interpolated < depth_ssaa_buf[get_index_ssaa(i, j) + li]) {
+                        depth_ssaa_buf[get_index_ssaa(i, j) + li] = z_interpolated;
+                        frame_ssaa_buf[get_index_ssaa(i, j) + li] = t.getColor();
+                    }
                 }
-                if (!a) colList.push_back((t.getColor() * count) / 4);
-                
-            // }
+            } 
+
         }
     }
-
-    // for (auto col: colList) {
-    //     std::cout << "collList" << std::endl << col << std::endl;
-    // }
-
 }
 
 void rst::rasterizer::set_model(const Eigen::Matrix4f& m)
@@ -234,17 +227,32 @@ void rst::rasterizer::clear(rst::Buffers buff)
     {
         std::fill(depth_buf.begin(), depth_buf.end(), std::numeric_limits<float>::infinity());
     }
+    if ((buff & rst::Buffers::Color) == rst::Buffers::Color)
+    {
+        std::fill(frame_ssaa_buf.begin(), frame_ssaa_buf.end(), Eigen::Vector3f{0, 0, 0});
+    }
+    if ((buff & rst::Buffers::Depth) == rst::Buffers::Depth)
+    {
+        std::fill(depth_ssaa_buf.begin(), depth_ssaa_buf.end(), std::numeric_limits<float>::infinity());
+    }
 }
 
 rst::rasterizer::rasterizer(int w, int h) : width(w), height(h)
 {
     frame_buf.resize(w * h);
     depth_buf.resize(w * h);
+    frame_ssaa_buf.resize(w * h * 4);
+    depth_ssaa_buf.resize(w * h * 4);
 }
 
 int rst::rasterizer::get_index(int x, int y)
 {
     return (height-1-y)*width + x;
+}
+
+int rst::rasterizer::get_index_ssaa(int x, int y)
+{
+    return (y * width + x) * 4;
 }
 
 void rst::rasterizer::set_pixel(const Eigen::Vector3f& point, const Eigen::Vector3f& color)
