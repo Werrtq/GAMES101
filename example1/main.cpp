@@ -40,6 +40,7 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
                                       float zNear, float zFar)
 {
     // Students will implement this function
+    const float n = -zNear, f = -zFar;
     const auto tan_rad = tan(eye_fov / 2 * MY_PI / 180);
     const auto t = zNear * tan_rad, b = -t, l = -t, r = t;
 
@@ -48,16 +49,16 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
     // TODO: Implement this function
     // Create the projection matrix for the given parameters.
     // Then return it.
-    projection << zNear, 0, 0, 0,
-                  0, zNear, 0, 0,
-                  0, 0, zFar + zNear, -zFar * zNear,
+    projection << n, 0, 0, 0,
+                  0, n, 0, 0,
+                  0, 0, f + n, -f * n,
                   0, 0, 1, 0;
 
     Eigen::Matrix4f M1 = Eigen::Matrix4f::Identity();
 
     M1 << 2/(r-l), 0, 0, -(r+l)/2,
           0, 2/(t-b), 0, -(t+b)/2,
-          0, 0, 2/(zNear-zFar), -(zNear+zFar)/2,
+          0, 0, 2/(n-f), -(n+f)/2,
           0, 0, 0, 1;
 
     return M1 * projection;
@@ -106,7 +107,7 @@ int main(int argc, const char** argv)
 
     Eigen::Vector3f eye_pos = {0, 0, 5};
 
-    std::vector<Eigen::Vector3f> pos{{1, 0, -1}, {0, 1, -1}, {-1, 0, -1}};
+    std::vector<Eigen::Vector3f> pos{{2, 0, -1}, {0, 1, -1}, {-1, 0, -1}};
 
     std::vector<Eigen::Vector3i> ind{{0, 1, 2}};
 
