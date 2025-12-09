@@ -79,19 +79,34 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
     float f2 = (50 + 0.1) / 2.0;
 
     Eigen::Matrix4f mvp = projection * view * model;
+    // Eigen::Matrix4f mv = view * model;
     // std::cout << "mvp: \n" << mvp << std::endl;
+    int tri_cout = 0;
     for (auto& i : ind)
     {
+
+        tri_cout++;
+        std::cout << "tri_cout: " << tri_cout << std::endl;
+
         Triangle t;
         Eigen::Vector4f v[] = {
                 mvp * to_vec4(buf[i[0]], 1.0f),
                 mvp * to_vec4(buf[i[1]], 1.0f),
                 mvp * to_vec4(buf[i[2]], 1.0f)
         };
+
+        // std::cout << "0" << ": " << std::endl << v[0] << std::endl;
+        // std::cout << "1" << ": " << std::endl << v[1] << std::endl;
+        // std::cout << "2" << ": " << std::endl << v[2] << std::endl;
+
         //Homogeneous division
         for (auto& vec : v) {
             vec /= vec.w();
         }
+
+        std::cout << "0" << ": " << std::endl << v[0] << std::endl;
+        std::cout << "1" << ": " << std::endl << v[1] << std::endl;
+        std::cout << "2" << ": " << std::endl << v[2] << std::endl;
 
         // std::cout<< "after mvp\n" << v[0] << "\n" << v[1] << "\n" << v[2] << std::endl;
         //Viewport transformation
@@ -117,25 +132,25 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
         t.setColor(1, col_y[0], col_y[1], col_y[2]);
         t.setColor(2, col_z[0], col_z[1], col_z[2]);
 
-        std::cout << " `````````````` " << i << std::endl;
+        // std::cout << " `````````````` " << i << std::endl;
         rasterize_triangle(t);
     }
 
-    for(int i = 0; i < width; i++){
-        for(int j = 0; j < height; j++){
-            // int list[][] = {[0, 0], [1, 0], [0, 1], [1, 1]};
+    // for(int i = 0; i < width; i++){
+    //     for(int j = 0; j < height; j++){
+    //         // int list[][] = {[0, 0], [1, 0], [0, 1], [1, 1]};
 
-            // float zValue = 0;
-            Eigen::Vector3f color = {0, 0, 0};
+    //         // float zValue = 0;
+    //         Eigen::Vector3f color = {0, 0, 0};
 
-            for (int li = 0; li < 4; li++){
-                // zValue += depth_buf[get_index(i, j)];
-                color += frame_ssaa_buf[get_index_ssaa(i, j) + li];
-            }
+    //         for (int li = 0; li < 4; li++){
+    //             // zValue += depth_buf[get_index(i, j)];
+    //             color += frame_ssaa_buf[get_index_ssaa(i, j) + li];
+    //         }
 
-            frame_buf[get_index(i, j)] = color / 4;
-        }
-    }
+    //         frame_buf[get_index(i, j)] = color / 4;
+    //     }
+    // }
 }
 
 //Screen space rasterization
@@ -153,53 +168,59 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     if (y_min < 0) y_min =0;
     if (y_max > height) y_max = height - 1;
 
-    std::cout << "x_min: " << x_min << ", x_max: " << x_max << ", y_min: " << y_min << ", y_max: " << y_max << std::endl;
-    // for (int i = x_min; i <= x_max; i++) {
-    //     for (int j = y_min; j <= y_max; j++) {
-
-    //         // std::cout << i << ", " <<j << std::endl;
-
-    //         if (insideTriangle(i + 0.5, j + 0.5, t.v)) {
-    //             // If so, use the following code to get the interpolated z value.
-    //             auto[alpha, beta, gamma] = computeBarycentric2D(i, j, t.v);
-    //             float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
-    //             float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
-    //             z_interpolated *= w_reciprocal;
-
-    //             // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
-
-    //             if (z_interpolated < depth_buf[get_index(i, j)]) {
-    //                 depth_buf[get_index(i, j)] = z_interpolated;
-    //                 set_pixel(Eigen::Vector3f(i, j, 1), t.getColor());
-    //             }
-    //         }
-    //     }
-    // }
-
-
-
+    // std::cout << "x_min: " << x_min << ", x_max: " << x_max << ", y_min: " << y_min << ", y_max: " << y_max << std::endl;
     for (int i = x_min; i <= x_max; i++) {
         for (int j = y_min; j <= y_max; j++) {
-            float list[4][2] = {{0.25, 0.25}, {0.75, 0.25}, {0.25, 0.75},{ 0.75, 0.75}};
 
-            for (int li = 0; li < 4; li++){
-                if (insideTriangle(i + list[li][0], j + list[li][1], t.v)) {
-                    // If so, use the following code to get the interpolated z value.
-                    auto[alpha, beta, gamma] = computeBarycentric2D(i + list[li][0], j + list[li][1], t.v);
-                    float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
-                    float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
-                    z_interpolated *= w_reciprocal;
+            // std::cout << i << ", " <<j << std::endl;
 
-                    // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
-                    if (z_interpolated < depth_ssaa_buf[get_index_ssaa(i, j) + li]) {
-                        depth_ssaa_buf[get_index_ssaa(i, j) + li] = z_interpolated;
-                        frame_ssaa_buf[get_index_ssaa(i, j) + li] = t.getColor();
-                    }
+            if (insideTriangle(i + 0.5, j + 0.5, t.v)) {
+                // If so, use the following code to get the interpolated z value.
+                // auto[alpha, beta, gamma] = computeBarycentric2D(i, j, t.v);
+                // float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+                // float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+                // z_interpolated *= w_reciprocal;
+
+                auto[alpha, beta, gamma] = computeBarycentric2D(i, j, t.v);
+                // float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+                float z_interpolated = alpha * v[0].z() + beta * v[1].z() + gamma * v[2].z();
+                // std::cout << "z_interpolated: " << z_interpolated << std::endl;
+                // z_interpolated *= w_reciprocal;
+
+                // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
+
+                if (z_interpolated < depth_buf[get_index(i, j)]) {
+                    depth_buf[get_index(i, j)] = z_interpolated;
+                    set_pixel(Eigen::Vector3f(i, j, 1), t.getColor());
                 }
-            } 
-
+            }
         }
     }
+
+
+
+    // for (int i = x_min; i <= x_max; i++) {
+    //     for (int j = y_min; j <= y_max; j++) {
+    //         float list[4][2] = {{0.25, 0.25}, {0.75, 0.25}, {0.25, 0.75},{ 0.75, 0.75}};
+
+    //         for (int li = 0; li < 4; li++){
+    //             if (insideTriangle(i + list[li][0], j + list[li][1], t.v)) {
+    //                 // If so, use the following code to get the interpolated z value.
+    //                 auto[alpha, beta, gamma] = computeBarycentric2D(i + list[li][0], j + list[li][1], t.v);
+    //                 float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+    //                 float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+    //                 z_interpolated *= w_reciprocal;
+
+    //                 // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
+    //                 if (z_interpolated < depth_ssaa_buf[get_index_ssaa(i, j) + li]) {
+    //                     depth_ssaa_buf[get_index_ssaa(i, j) + li] = z_interpolated;
+    //                     frame_ssaa_buf[get_index_ssaa(i, j) + li] = t.getColor();
+    //                 }
+    //             }
+    //         } 
+
+    //     }
+    // }
 }
 
 void rst::rasterizer::set_model(const Eigen::Matrix4f& m)

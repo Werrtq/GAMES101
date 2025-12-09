@@ -51,6 +51,42 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float z
 {
     // TODO: Use the same projection matrix from the previous assignments
 
+    // const float n = -zNear, f = -zFar;
+    const float n = -zNear, f = -zFar;
+    const auto tan_rad = tan(eye_fov / 2 * MY_PI / 180);
+    const auto t = zNear * tan_rad, b = -t, l = -t, r = t;
+    // const auto t = n * tan_rad, b = -t, l = -t, r = t;
+
+    Eigen::Matrix4f projection = Eigen::Matrix4f::Identity();
+
+    // TODO: Implement this function
+    // Create the projection matrix for the given parameters.
+    // Then return it.
+    projection << n, 0, 0, 0,
+                  0, n, 0, 0,
+                  0, 0, f + n, -f * n,
+                  0, 0, 1, 0;
+
+    Eigen::Matrix4f M1 = Eigen::Matrix4f::Identity();
+
+    // M1 << 2/(r-l), 0, 0, -(r+l)/2,
+    //       0, 2/(t-b), 0, -(t+b)/2,
+    //       0, 0, 2/(n-f), -(n+f)/2,
+    //       0, 0, 0, 1;
+
+    M1 << 2/(r-l), 0, 0, -(r+l)/(r-l),
+    0, 2/(t-b), 0, -(t+b)/(t-b),
+    0, 0, 2/(n-f), -(n+f)/(n-f),
+    0, 0, 0, 1;
+
+    Eigen::Matrix4f reverse_z = Eigen::Matrix4f::Identity();
+    reverse_z << 1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, -1, 0,
+                0, 0, 0, 1;
+
+    return reverse_z * M1 * projection;
+
 }
 
 Eigen::Vector3f vertex_shader(const vertex_shader_payload& payload)
@@ -243,6 +279,7 @@ int main(int argc, const char** argv)
     std::vector<Triangle*> TriangleList;
 
     float angle = 140.0;
+    // float angle = 0;
     bool command_line = false;
 
     std::string filename = "output.png";

@@ -39,6 +39,7 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float z
 
     // Students will implement this function
     const float n = -zNear, f = -zFar;
+    // const float n = zNear, f = zFar;
     const auto tan_rad = tan(eye_fov / 2 * MY_PI / 180);
     const auto t = zNear * tan_rad, b = -t, l = -t, r = t;
 
@@ -54,12 +55,25 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float z
 
     Eigen::Matrix4f M1 = Eigen::Matrix4f::Identity();
 
-    M1 << 2/(r-l), 0, 0, -(r+l)/2,
-          0, 2/(t-b), 0, -(t+b)/2,
-          0, 0, 2/(n-f), -(n+f)/2,
-          0, 0, 0, 1;
+    // M1 << 2/(r-l), 0, 0, -(r+l)/2,
+    //       0, 2/(t-b), 0, -(t+b)/2,
+    //       0, 0, 2/(n-f), -(n+f)/2,
+    //       0, 0, 0, 1;
 
-    return M1 * projection;
+    M1 << 2/(r-l), 0, 0, -(r+l)/(r-l),
+        0, 2/(t-b), 0, -(t+b)/(t-b),
+        0, 0, 2/(n-f), -(n+f)/(n-f),
+        0, 0, 0, 1;
+
+    Eigen::Matrix4f reverse_z = Eigen::Matrix4f::Identity();
+    reverse_z << 1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, -1, 0,
+                0, 0, 0, 1;
+
+        // std::cout << "Projectio Matrix: \n" << M1 * projection <<std::endl;
+
+    return reverse_z * M1 * projection;
 }
 
 int main(int argc, const char** argv)
@@ -88,6 +102,16 @@ int main(int argc, const char** argv)
                     {2.5, 1.5, -5},
                     {-1, 0.5, -5}
             };
+
+    // std::vector<Eigen::Vector3f> pos
+    // {
+    //         {2, 0, 4.89},
+    //         {0, 2, 4.8},
+    //         {-2, 0, 4.89},
+    //         {2, 1, -5},
+    //         {0, -1, -5},
+    //         {-2, 1, -5}
+    // };
 
     std::vector<Eigen::Vector3i> ind
             {
