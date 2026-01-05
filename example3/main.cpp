@@ -177,24 +177,20 @@ Eigen::Vector3f phong_fragment_shader(const fragment_shader_payload& payload)
     for (auto& light : lights)
     {
 
+        auto l = (light.position - point).normalized();
+        auto v = (eye_pos - point).normalized();
+        auto h = (l + v) / (l + v).norm();
         auto r = (light.position - point).norm();
         auto r2 = r * r;
 
-        double cos = normal.dot((light.position - point)) / ((light.position - point).norm() * normal.norm());
-        Eigen::Vector3f diffuse = kd.cwiseProduct(light.intensity) / r2 * std::max({0., cos});
-        // std::cout << diffuse << ",,, "<<std::endl;
-        result_color += diffuse;
-        // TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular* 
-        // components are. Then, accumulate that result on the *result_color* object.
-        Eigen::Vector3f h = ((light.position - point) + (eye_pos - point)) / ((light.position - point) + (eye_pos - point)).norm();
-        double cosn = h.dot(normal) / (h.norm() * normal.norm());
-        auto specular = ks.cwiseProduct(light.intensity) / r2 * std::pow(std::max(0., cosn), p);
-
-        result_color += specular;
-
+        double cos = normal.dot(l) / (l.norm() * normal.norm());
+        double coshn = h.dot(normal) / (h.norm() * normal.norm());
+        
+        auto diffuse = kd.cwiseProduct(light.intensity) / r2 * std::max({0., cos});
+        auto specular = ks.cwiseProduct(light.intensity) / r2 * std::pow(std::max(0., coshn), p);
         auto ambient = ka.cwiseProduct(amb_light_intensity);
 
-        result_color += ambient;
+        result_color += ambient + specular + diffuse;
     }
 
     return result_color * 255.f;
